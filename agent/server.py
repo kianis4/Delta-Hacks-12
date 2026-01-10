@@ -29,6 +29,9 @@ async def chat(request: ChatRequest):
         inputs = {"messages": [HumanMessage(content=request.message)]}
         config = {"configurable": {"thread_id": request.thread_id}}
         
+        # Debugging: Print current state to verify memory
+        print(f"--- Chat Request: {request.thread_id} ---")
+        
         # Run the agent with state persistence
         final_state = agent_app.invoke(inputs, config=config)
         

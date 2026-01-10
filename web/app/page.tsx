@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, AlertTriangle, Scale, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -113,7 +115,15 @@ export default function Home() {
                 ? "bg-indigo-600 text-white rounded-br-none" 
                 : "bg-white border border-slate-200 text-slate-800 rounded-bl-none"
             )}>
-              <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+              {msg.role === 'user' ? (
+                <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+              ) : (
+                <div className="prose prose-sm prose-slate max-w-none prose-headings:font-bold prose-headings:text-slate-900 prose-p:text-slate-700 prose-li:text-slate-700 prose-strong:text-slate-900">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {msg.content}
+                  </ReactMarkdown>
+                </div>
+              )}
               {msg.role === 'assistant' && (
                 <div className="mt-3 pt-3 border-t border-slate-100 flex gap-4 text-xs text-slate-400">
                   <span className="flex items-center gap-1"><FileText className="w-3 h-3" /> citing RTA 2006</span>

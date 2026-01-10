@@ -16,55 +16,53 @@ class AgentState(TypedDict):
     legal_issue: str
     relevant_laws: list[str]
     draft: str
-    draft: str
     critique: str
     
     # Phase 2: Clarification
     needs_clarification: bool
+    needs_clarification: bool
     clarification_question: str
+    
+    # Phase 3: Jurisdiction
+    jurisdiction: str # 'ON', 'BC', 'AB', or 'General'
 
 # --- LLM Setup ---
-llm = ChatGoogleGenerativeAI(model="gemini-3-flash-preview", temperature=0)
+llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash-exp", temperature=0)
 
 # --- Nodes ---
 
-def triage_node(state: AgentState):
-    """Determines the legal domain and issue."""
-    messages = state['messages']
-    last_message = messages[-1]
-    
-    prompt = f"""
-    You are a Legal Triage Agent. Analyze the user's situation and classify it.
-    Exract the distinct legal issue (e.g., "Eviction for Personal Use - N12").
-    If it's not a legal issue, say "NOT_LEGAL".
-    
-    User Input: {last_message.content}
+def orchestrator_node(state: AgentState):
     """
-    response = llm.invoke(prompt)
-    content = response.content
-    if isinstance(content, list):
-        # Extract text from list of content blocks if needed
-        # Gemini 3 might return [{'type': 'text', 'text': '...'}, ...]
-        text_parts = [item['text'] for item in content if isinstance(item, dict) and 'text' in item]
-        legal_issue = " ".join(text_parts)
-    else:
-        legal_issue = str(content)
-        
-    return {"legal_issue": legal_issue}
-
-def clarify_node(state: AgentState):
-    """Checks if the user input is clear enough to proceed."""
+    Orchestrates the conversation: Analyzes history, extracts intent/jurisdiction, and decides next step.
+    """
     messages = state['messages']
-    last_message = messages[-1]
+    
+    # Format conversation history
+    chat_history = "\n".join([f"{msg.type}: {msg.content}" for msg in messages])
     
     prompt = f"""
-    You are a Legal Intake Specialist.
-    User Input: "{last_message.content}"
+    You are the Brain of a Legal Agent. 
+    Analyze the full conversation history to determine the User's Legal Issue and Jurisdiction.
     
-    Does this input contain enough specific information (e.g., Notice Type like N12, N11, N4, dates, or specific rent increase amounts) to give legal advice?
+    HISTORY:
+    {chat_history}
     
-    If YES, output "CLEAR".
-    If NO (it's too vague, e.g., "my landlord is mad" or "help me"), output a specific follow-up question to ask the user.
+    YOUR TASKS:
+    1. **Identify Jurisdiction**: ON (Ontario), BC (British Columbia), AB (Alberta), or UNKNOWN.
+       - Look for keywords: "Toronto", "Vancouver", "RTB", "N12", etc.
+       - If user says "Ontario", that overrides previous unknowns.
+       
+    2. **Identify Legal Issue**: Summarize the CORE legal problem from the *entire* history.
+       - Example History: "My landlord raised rent" -> "Which province?" -> "Ontario"
+       - Result Issue: "Rent increase dispute in Ontario" (NOT just "Ontario").
+       
+    3. **Determine Status**:
+       - **CLEAR**: We have both Jurisdiction and a Specific Issue.
+       - **CLARIFY**: We are missing Jurisdiction OR the Issue is too vague.
+       
+    4. **Generate Output**:
+       - If CLARIFY: Output "CLARIFY | <Specific Question>"
+       - If CLEAR: Output "CLEAR | <Jurisdiction Code> | <Summary of Legal Issue>"
     """
     response = llm.invoke(prompt)
     content = response.content
@@ -76,11 +74,24 @@ def clarify_node(state: AgentState):
     else:
         text_content = str(content)
         
-    if "CLEAR" in text_content:
-        return {"needs_clarification": False}
+    print(f"DEBUG: Orchestrator Decision: {text_content}")
+        
+    if text_content.startswith("CLEAR"):
+        parts = text_content.split("|")
+        jurisdiction = parts[1].strip() if len(parts) > 1 else "ON"
+        issue = parts[2].strip() if len(parts) > 2 else "General Legal Query"
+        return {
+            "needs_clarification": False, 
+            "jurisdiction": jurisdiction, 
+            "legal_issue": issue
+        }
     else:
-        # It's a question
-        return {"needs_clarification": True, "clarification_question": text_content}
+        # Ask question
+        question = text_content.split("|")[-1].strip()
+        return {
+            "needs_clarification": True, 
+            "clarification_question": question
+        }
 
 def get_embeddings():
     return VoyageAIEmbeddings(model="voyage-law-2")
@@ -90,7 +101,8 @@ def research_node(state: AgentState):
     Queries MongoDB Atlas Vector Store for laws.
     """
     issue = state.get("legal_issue", "")
-    print(f"DEBUG: Researching issue: {issue}")
+    jurisdiction = state.get("jurisdiction", "ON")
+    print(f"DEBUG: Researching issue: {issue} in {jurisdiction}")
     
     try:
         embeddings = get_embeddings()
@@ -101,14 +113,20 @@ def research_node(state: AgentState):
             index_name="vector_index"
         )
         
-        # Perform Similarity Search
-        # We query for the issue directly
-        results = vector_store.similarity_search(issue, k=3)
+        # Perform Similarity Search with Pre-Filtering
+        # Syntax depends on langchain version, but filter usually works in kwargs
+        filter_query = {"jurisdiction": jurisdiction}
+        
+        results = vector_store.similarity_search(
+            issue, 
+            k=3,
+            pre_filter=filter_query # Filter by jurisdiction
+        )
         
         found_laws = []
         for doc in results:
             source = doc.metadata.get('source', 'Unknown Source')
-            content = doc.page_content[:500] + "..." # Truncate for prompt context
+            content = doc.page_content[:1500] # Increased context window
             found_laws.append(f"Source: {source}\nContent: {content}")
             
         if not found_laws:
@@ -119,6 +137,38 @@ def research_node(state: AgentState):
         found_laws = ["Error connecting to Legal Database. Proceeding with general knowledge."]
     
     return {"relevant_laws": found_laws}
+
+def explainer_node(state: AgentState):
+    """Explains the situation and provides options."""
+    issue = state.get("legal_issue")
+    laws = state.get("relevant_laws")
+    messages = state['messages']
+    
+    prompt = f"""
+    You are a Senior Legal Strategist.
+    Issue: {issue}
+    Relevant Laws: {laws}
+    User Context: {messages[-1].content}
+    
+    1. **Explain** the legal situation clearly to the user.
+    2. **Cite Verbatim**: Quote the specific sections of the laws provided that apply (e.g. "Section 83(1) states..."). Do not paraphrase the law itself.
+    3. **Provide Options**: specific, actionable paths forward (e.g. "Option 1: File T6", "Option 2: Negotiate").
+    
+    RESTRICTION: Do NOT draft a full letter yet. ask the user which option they want to pursue.
+    """
+    response = llm.invoke(prompt)
+    content = response.content
+    
+    # Handle Gemini 3 list output
+    if isinstance(content, list):
+        text_parts = [item['text'] for item in content if isinstance(item, dict) and 'text' in item]
+        text_content = " ".join(text_parts)
+    else:
+        text_content = str(content)
+        
+    ai_message = AIMessage(content=text_content)
+    # We map this to 'draft' for now so the UI picks it up without code changes
+    return {"draft": text_content, "messages": [ai_message]}
 
 def drafter_node(state: AgentState):
     """Drafts the legal document based on research."""
@@ -154,31 +204,30 @@ def drafter_node(state: AgentState):
 # --- Graph Definition ---
 workflow = StateGraph(AgentState)
 
-workflow.add_node("triage", triage_node)
-workflow.add_node("clarify", clarify_node) # New Node
+workflow.add_node("orchestrator", orchestrator_node)
 workflow.add_node("research", research_node)
-workflow.add_node("drafter", drafter_node)
+workflow.add_node("explainer", explainer_node)
 
-workflow.set_entry_point("clarify") # Start by checking clarity
+workflow.set_entry_point("orchestrator")
 
 # Conditional Edge
-def should_clarify(state: AgentState):
+def should_continue(state: AgentState):
     if state.get("needs_clarification"):
         return "end_with_question"
-    return "triage"
+    return "research"
 
 workflow.add_conditional_edges(
-    "clarify",
-    should_clarify,
+    "orchestrator",
+    should_continue,
     {
         "end_with_question": END,
-        "triage": "triage"
+        "research": "research"
     }
 )
 
-workflow.add_edge("triage", "research")
-workflow.add_edge("research", "drafter")
-workflow.add_edge("drafter", END)
+# workflow.add_edge("triage", "research") # Removed
+workflow.add_edge("research", "explainer")
+workflow.add_edge("explainer", END)
 
 # --- Persistence ---
 from langgraph.checkpoint.memory import MemorySaver
@@ -204,4 +253,21 @@ if __name__ == "__main__":
     for output in app.stream(inputs, config=config):
         for key, value in output.items():
             print(f"Finished Node: {key}")
+
+    # Test run 3: Multi-Turn Context
+    print("\n--- Test 3: Multi-Turn (Rent Increase -> Ontario) ---")
+    config = {"configurable": {"thread_id": "test-thread-3"}}
+    # Turn 1
+    print("Turn 1: 'My landlord is raising rent'")
+    inputs = {"messages": [HumanMessage(content="My landlord is raising rent")]}
+    app.invoke(inputs, config=config)
+    
+    # Turn 2
+    print("Turn 2: 'Ontario'")
+    inputs = {"messages": [HumanMessage(content="Ontario")]}
+    for output in app.stream(inputs, config=config):
+        for key, value in output.items():
+            print(f"Finished Node: {key}")
+            if key == "orchestrator":
+                 print(f"Orchestrator Result: {value}")
 

@@ -12,12 +12,32 @@ In 2026, the legal gap is widening. Juris bridges this gap by using state-of-the
 ## 🏗️ Architecture: The "Agentic" Difference
 Traditional RAG just retrieves text and summarizes it. **Juris** uses an **Agentic Workflow** that mirrors how a human paralegal works:
 
-1.  **Orchestrator (The Brain)**: A master agent that breaks down the user's problem.
-2.  **Triage Agent**: Determines the domain (e.g., "Eviction" vs "Harassment").
-3.  **Research Agent**: Autonomously searches our **MongoDB Atlas Vector Store** for specific laws (e.g., *Residential Tenancies Act 2006*).
-    *   *Self-Correction*: If the first search fails, it rephrases the query and tries again.
-4.  **Drafter Agent**: Uses the research to fill out official government forms (e.g., N12, T6).
-5.  **Critic Agent**: A "Devil's Advocate" agent that reviews the draft for factual hallucinations before showing it to the user.
+1.  **Orchestrator Node (The Brain)**: A single master agent that synthesizes the *entire* conversation history (not just the last output). It detects:
+    *   **Jurisdiction**: Automatically distinguishes Ontario (N12) from BC (RTB-32).
+    *   **Context**: Connects "Rent increase" (history) + "Ontario" (latest) into "Rent increase dispute in Ontario".
+    *   **Clarity**: Decides whether to ask a follow-up question ("Which province?") or proceed.
+2.  **Research Agent**: Autonomously searches our **MongoDB Atlas Vector Store**, intelligently filtering results by the detected jurisdiction (ON/BC/AB).
+3.  **Explainer Node**: Instead of blindly drafting, it *explains* your options (e.g., "Dispute vs. Negotiate") and cites the law **verbatim** (Section 48/83).
+
+```mermaid
+graph TD
+    User([User]) <--> Frontend[Next.js + Tailwind Typography]
+    Frontend <--> API[FastAPI + LangGraph]
+    
+    subgraph "Agent Brain (Orchestrator Pattern)"
+        API --> Orchestrator{Orchestrator Node}
+        Orchestrator -- "Vague / Unknown Loc" --> Question([Ask Clarification])
+        Orchestrator -- "Clear" --> Research[Research Node]
+        
+        Research <--> Mongo[(MongoDB Atlas\nVector Store)]
+        
+        Research --> Explainer[Explainer Node]
+        Explainer --> Response([Options & Citations])
+    end
+    
+    Question -.-> API
+    Response -.-> API
+```
 
 ---
 
@@ -28,10 +48,10 @@ We have selected this stack based on **State-of-the-Art (SOTA) 2026 Benchmarks**
 | Component | Choice | Rationale |
 | :--- | :--- | :--- |
 | **Embeddings** | **Voyage AI (`voyage-law-2`)** | Benchmarks show it outperforms OpenAI/Gemini by ~10% on legal retrieval. It handles the nuance of "legalese" better than general models. |
-| **LLM Reasoning** | **Google Gemini 1.5 Pro** | Huge context window (2M tokens) allows us to dump entire case files into context for "reasoning". |
+| **LLM Reasoning** | **Google Gemini 2.0 Flash (Exp)** | The absolute fastest and most capable model available. Used for the Orchestrator's complex reasoning. |
 | **Vector DB** | **MongoDB Atlas** | **Hybrid Search**: We need keyword search (for exact legal clause numbers) AND vector search (for concepts). Atlas does both natively. |
-| **Orchestration** | **LangGraph** | Legal logic is cyclical and strict ("If A then B"). LangGraph offers better control than CrewAI's open-ended roleplay. |
-| **Privacy** | **Tailscale** | Allows us to demo a distributed "Local Mesh" where sensitive legal docs never leave the user's devices (optional advanced feature). |
+| **Orchestration** | **LangGraph** | Using the **Orchestrator-Worker** pattern. Allows for cyclical "Thinking Loops" and state persistence (Memory). |
+| **Persistence** | **LangGraph Checkpointer** | The bot "remembers" context across turns (e.g. remembering you said "Ontario" 3 messages ago). |
 
 ---
 
@@ -43,8 +63,8 @@ To ensure we are ethical and safe, Juris enforces the following:
 
 1.  **The "Red Box" Disclaimer**:
     > *WARNING: Juris is an AI research tool, not a law firm. This system produces drafts for informational purposes only. You must verify all citations with a qualified legal professional.*
-2.  **Human-in-the-Loop**: The system never "auto-sends" an email or files a form. It *drafts*, and the user must manually review and hit "Send".
-3.  **Citation Transparency**: Every sentence in a drafted letter includes a footnote linking back to the exact source text in the *Tenancies Act*.
+2.  **Explainer Mode**: We prioritize *explaining options* over blind drafting, forcing the user to make the final strategic choice.
+3.  **Citation Transparency**: Every sentence includes a verbatim citation (e.g., *"Section 48(1) states..."*).
 
 ---
 
@@ -52,13 +72,12 @@ To ensure we are ethical and safe, Juris enforces the following:
 
 ### Pros
 *   **Massive Cost Savings**: A paralegal costs $150/hr. Juris costs $0.05 per run.
-*   **Empowerment**: Users walk into court knowing exactly which section of the law protects them.
-*   **Availability**: 24/7 assistance for emergencies (e.g., "Landlord just locked me out").
+*   **Smart Routing**: Automatically detects your province (ON/BC) and filters laws accordingly.
+*   **Memory**: Conversational persistence (via `thread_id`) means it remembers your story.
 
 ### Cons
-*   **Hallucination Risk**: AI can invent precedents. *Mitigation: The "Critic Agent" layer.*
+*   **Hallucination Risk**: AI can invent precedents. *Mitigation: Verbatim citation requirement.*
 *   **Complexity bias**: Users might trust the "smart machine" too much. *Mitigation: Strongly worded UI warnings.*
-*   **No "Strategy"**: Juris can execute tasks, but it cannot devise a complex multi-year litigation strategy like a human can.
 
 ---
 ### Troubleshooting

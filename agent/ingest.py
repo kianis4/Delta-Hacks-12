@@ -16,7 +16,7 @@ MONGODB_URI = os.getenv("MONGODB_URI")
 
 JURISDICTION_MAP = {
     "ontario_rta.html": "ON",
-    "bc_rta.pdf": "BC",
+    "bc_rta.html": "BC",
     "alberta_rta.pdf": "AB"
 }
 
@@ -73,10 +73,8 @@ if __name__ == "__main__":
         print("CRITICAL: MONGODB_URI is missing in .env")
     else:
         # Check if file exists, if not warn user
-        target_file = "docs/ontario_rta.html"
+        target_file = "docs/bc_rta.html"
         if os.path.exists(target_file):
             ingest_data(target_file)
         else:
-            print(f"Warning: {target_file} not found. Running download command...")
-            os.system('curl -L "https://www.ontario.ca/laws/statute/06r17" -o docs/ontario_rta.html')
-            ingest_data(target_file)
+            print(f"Warning: {target_file} not found.")
