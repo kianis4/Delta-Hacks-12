@@ -61,6 +61,9 @@ To ensure we are ethical and safe, Juris enforces the following:
 *   **No "Strategy"**: Juris can execute tasks, but it cannot devise a complex multi-year litigation strategy like a human can.
 
 ---
+### Troubleshooting
+*   **Ingestion is Slow**: Voyage AI's free tier has a **3 RPM (Request Per Minute)** limit. The ingestion script sleeps for 25s between batches to respect this. This is normal.
+*   **API Errors**: Ensure `VOYAGE_API_KEY` and `MONGODB_URI` are correct in `.env`.
 
 ## 🗺️ Roadmap
 

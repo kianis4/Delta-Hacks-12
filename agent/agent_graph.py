@@ -3,7 +3,9 @@ from typing import TypedDict, Annotated, Sequence
 import operator
 from langgraph.graph import StateGraph, END
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+from langchain_mongodb import MongoDBAtlasVectorSearch
+from langchain_voyageai import VoyageAIEmbeddings
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -17,7 +19,7 @@ class AgentState(TypedDict):
     critique: str
 
 # --- LLM Setup ---
-llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro", temperature=0)
+llm = ChatGoogleGenerativeAI(model="gemini-3-flash-preview", temperature=0)
 
 # --- Nodes ---
 
@@ -34,21 +36,52 @@ def triage_node(state: AgentState):
     User Input: {last_message.content}
     """
     response = llm.invoke(prompt)
-    return {"legal_issue": response.content}
+    content = response.content
+    if isinstance(content, list):
+        # Extract text from list of content blocks if needed
+        # Gemini 3 might return [{'type': 'text', 'text': '...'}, ...]
+        text_parts = [item['text'] for item in content if isinstance(item, dict) and 'text' in item]
+        legal_issue = " ".join(text_parts)
+    else:
+        legal_issue = str(content)
+        
+    return {"legal_issue": legal_issue}
+
+def get_embeddings():
+    return VoyageAIEmbeddings(model="voyage-law-2")
 
 def research_node(state: AgentState):
     """
-    (Placeholder) Queries MongoDB/Vector Store for laws.
-    For MVP, we will simulate this or use a basic keyword lookup if DB isn't ready.
+    Queries MongoDB Atlas Vector Store for laws.
     """
     issue = state.get("legal_issue", "")
     print(f"DEBUG: Researching issue: {issue}")
     
-    # TODO: Replace with actual Vector Search call
-    found_laws = [
-        "Residential Tenancies Act, 2006, S.O. 2006, c. 17, s. 48 (Notice by Landlord at end of period or term)",
-        "Residential Tenancies Act, 2006, S.O. 2006, c. 17, s. 83 (Refusal of eviction)"
-    ]
+    try:
+        embeddings = get_embeddings()
+        vector_store = MongoDBAtlasVectorSearch.from_connection_string(
+            connection_string=os.getenv("MONGODB_URI"),
+            namespace="juris_db.legal_docs",
+            embedding=embeddings,
+            index_name="vector_index"
+        )
+        
+        # Perform Similarity Search
+        # We query for the issue directly
+        results = vector_store.similarity_search(issue, k=3)
+        
+        found_laws = []
+        for doc in results:
+            source = doc.metadata.get('source', 'Unknown Source')
+            content = doc.page_content[:500] + "..." # Truncate for prompt context
+            found_laws.append(f"Source: {source}\nContent: {content}")
+            
+        if not found_laws:
+            found_laws = ["No specific case law found in the database. Relying on general legal principles."]
+            
+    except Exception as e:
+        print(f"VECTOR SEARCH FAILED: {e}")
+        found_laws = ["Error connecting to Legal Database. Proceeding with general knowledge."]
     
     return {"relevant_laws": found_laws}
 
@@ -69,7 +102,19 @@ def drafter_node(state: AgentState):
     Add a disclaimer at the top.
     """
     response = llm.invoke(prompt)
-    return {"draft": response.content}
+    content = response.content
+    
+    # Handle Gemini 3 list output
+    if isinstance(content, list):
+        text_parts = [item['text'] for item in content if isinstance(item, dict) and 'text' in item]
+        draft_text = " ".join(text_parts)
+    else:
+        draft_text = str(content)
+        
+    # Create a nice message for the chat history
+    ai_message = AIMessage(content=draft_text)
+    
+    return {"draft": draft_text, "messages": [ai_message]}
 
 # --- Graph Definition ---
 workflow = StateGraph(AgentState)
