@@ -1,0 +1,358 @@
+JURIS AUTHENTICATION SYSTEM - VISUAL ARCHITECTURE
+================================================
+
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                         CLIENT (Browser)                            │
+│                                                                     │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                │
+│  │   Login     │  │  Register   │  │  Dashboard  │                │
+│  │   Page      │  │    Page     │  │   (Protected)│                │
+│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘                │
+│         │                │                │                        │
+│         └────────────────┴────────────────┘                        │
+│                          │                                         │
+│                 ┌────────▼─────────┐                               │
+│                 │  AuthContext     │                               │
+│                 │  (Global State)  │                               │
+│                 └────────┬─────────┘                               │
+│                          │                                         │
+│                 ┌────────▼─────────┐                               │
+│                 │    AuthAPI       │                               │
+│                 │  (API Client)    │                               │
+│                 └────────┬─────────┘                               │
+│                          │                                         │
+│                 credentials: 'include'                             │
+│                 (HttpOnly Cookie)                                  │
+└─────────────────────────┼───────────────────────────────────────────┘
+                          │
+                          │ HTTPS (Production)
+                          │ HTTP (Development)
+                          │
+┌─────────────────────────▼───────────────────────────────────────────┐
+│                    BACKEND (FastAPI)                                │
+│                                                                     │
+│  ┌─────────────────────────────────────────────────────────────┐  │
+│  │                    CORS Middleware                          │  │
+│  │  - Allow credentials                                        │  │
+│  │  - Allow localhost:3000                                     │  │
+│  └─────────────────────────────────────────────────────────────┘  │
+│                          │                                         │
+│  ┌───────────────────────▼─────────────────────────────────────┐  │
+│  │                  Route Handlers                             │  │
+│  │                                                             │  │
+│  │  Public Endpoints:                                          │  │
+│  │  ┌──────────────────────────────────────────────┐          │  │
+│  │  │  POST /auth/register                         │          │  │
+│  │  │  POST /auth/login                            │          │  │
+│  │  │  POST /chat (currently public)               │          │  │
+│  │  └──────────────────────────────────────────────┘          │  │
+│  │                                                             │  │
+│  │  Protected Endpoints:                                       │  │
+│  │  ┌──────────────────────────────────────────────┐          │  │
+│  │  │  GET  /auth/me  ◄── Depends(get_current_user)│          │  │
+│  │  │  POST /auth/logout                            │          │  │
+│  │  │  GET  /api/cases                              │          │  │
+│  │  │  GET  /api/checklist                          │          │  │
+│  │  └──────────────────────────────────────────────┘          │  │
+│  └─────────────────────────────────────────────────────────────┘  │
+│                          │                                         │
+│  ┌───────────────────────▼─────────────────────────────────────┐  │
+│  │              Auth Dependencies                              │  │
+│  │  ┌─────────────────────────────────────────────┐           │  │
+│  │  │ get_current_user():                         │           │  │
+│  │  │  1. Extract session_id from cookie          │           │  │
+│  │  │  2. Validate session in DB                  │           │  │
+│  │  │  3. Check expiry                            │           │  │
+│  │  │  4. Return user or raise 401                │           │  │
+│  │  └─────────────────────────────────────────────┘           │  │
+│  └─────────────────────────────────────────────────────────────┘  │
+│                          │                                         │
+│  ┌───────────────────────▼─────────────────────────────────────┐  │
+│  │                Auth Business Logic                          │  │
+│  │                                                             │  │
+│  │  Security Utils:          Database Operations:             │  │
+│  │  ┌─────────────────┐     ┌─────────────────────┐          │  │
+│  │  │ hash_password() │     │ create_user()       │          │  │
+│  │  │ verify_password()│     │ get_user_by_email() │          │  │
+│  │  │ generate_session│     │ create_session()    │          │  │
+│  │  │ check_expiry()  │     │ delete_session()    │          │  │
+│  │  └─────────────────┘     └─────────────────────┘          │  │
+│  └─────────────────────────────────────────────────────────────┘  │
+└─────────────────────────┬───────────────────────────────────────────┘
+                          │
+                          │ MongoDB Driver (PyMongo)
+                          │
+┌─────────────────────────▼───────────────────────────────────────────┐
+│                   MONGODB ATLAS (Cloud)                             │
+│                                                                     │
+│  ┌─────────────────────────────────────────────────────────────┐  │
+│  │  Database: juris                                            │  │
+│  │                                                             │  │
+│  │  ┌─────────────────────────────────────────────────────┐   │  │
+│  │  │  Collection: users                                  │   │  │
+│  │  │  ┌───────────────────────────────────────────────┐ │   │  │
+│  │  │  │ {                                             │ │   │  │
+│  │  │  │   _id: ObjectId,                              │ │   │  │
+│  │  │  │   email: "user@example.com",    [INDEXED]     │ │   │  │
+│  │  │  │   password_hash: "$2b$12$...",                │ │   │  │
+│  │  │  │   full_name: "John Doe",                      │ │   │  │
+│  │  │  │   created_at: ISODate,                        │ │   │  │
+│  │  │  │   updated_at: ISODate                         │ │   │  │
+│  │  │  │ }                                             │ │   │  │
+│  │  │  └───────────────────────────────────────────────┘ │   │  │
+│  │  └─────────────────────────────────────────────────────┘   │  │
+│  │                                                             │  │
+│  │  ┌─────────────────────────────────────────────────────┐   │  │
+│  │  │  Collection: sessions                               │   │  │
+│  │  │  ┌───────────────────────────────────────────────┐ │   │  │
+│  │  │  │ {                                             │ │   │  │
+│  │  │  │   _id: ObjectId,         [SESSION_ID]         │ │   │  │
+│  │  │  │   user_id: ObjectId,     [REF to users]       │ │   │  │
+│  │  │  │   created_at: ISODate,                        │ │   │  │
+│  │  │  │   expires_at: ISODate,   [7 days default]     │ │   │  │
+│  │  │  │   ip_address: "192.168.1.1",                  │ │   │  │
+│  │  │  │   user_agent: "Mozilla/5.0..."                │ │   │  │
+│  │  │  │ }                                             │ │   │  │
+│  │  │  └───────────────────────────────────────────────┘ │   │  │
+│  │  └─────────────────────────────────────────────────────┘   │  │
+│  └─────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
+
+
+AUTHENTICATION FLOWS
+====================
+
+FLOW 1: REGISTRATION
+--------------------
+┌────────┐                ┌─────────┐              ┌──────────┐
+│ Client │                │ Backend │              │ Database │
+└───┬────┘                └────┬────┘              └────┬─────┘
+    │                          │                        │
+    │ POST /auth/register      │                        │
+    │ {email, password}        │                        │
+    ├─────────────────────────>│                        │
+    │                          │                        │
+    │                          │ Hash password (bcrypt) │
+    │                          │                        │
+    │                          │ Create user            │
+    │                          ├───────────────────────>│
+    │                          │                        │
+    │                          │ Create session         │
+    │                          ├───────────────────────>│
+    │                          │                        │
+    │                          │<───────────────────────┤
+    │ Set-Cookie: juris_session│                        │
+    │ {user data}              │                        │
+    │<─────────────────────────┤                        │
+    │                          │                        │
+    │ Redirect to /dashboard   │                        │
+    │                          │                        │
+
+
+FLOW 2: LOGIN
+-------------
+┌────────┐                ┌─────────┐              ┌──────────┐
+│ Client │                │ Backend │              │ Database │
+└───┬────┘                └────┬────┘              └────┬─────┘
+    │                          │                        │
+    │ POST /auth/login         │                        │
+    │ {email, password}        │                        │
+    ├─────────────────────────>│                        │
+    │                          │                        │
+    │                          │ Get user by email      │
+    │                          ├───────────────────────>│
+    │                          │<───────────────────────┤
+    │                          │                        │
+    │                          │ Verify password        │
+    │                          │ (bcrypt.checkpw)       │
+    │                          │                        │
+    │                          │ Create session         │
+    │                          ├───────────────────────>│
+    │                          │                        │
+    │ Set-Cookie: juris_session│                        │
+    │ {user data}              │                        │
+    │<─────────────────────────┤                        │
+    │                          │                        │
+
+
+FLOW 3: ACCESSING PROTECTED ENDPOINT
+-------------------------------------
+┌────────┐                ┌─────────┐              ┌──────────┐
+│ Client │                │ Backend │              │ Database │
+└───┬────┘                └────┬────┘              └────┬─────┘
+    │                          │                        │
+    │ GET /auth/me             │                        │
+    │ Cookie: juris_session=..│                        │
+    ├─────────────────────────>│                        │
+    │                          │                        │
+    │                          │ Extract session_id     │
+    │                          │ from cookie            │
+    │                          │                        │
+    │                          │ Get session            │
+    │                          ├───────────────────────>│
+    │                          │<───────────────────────┤
+    │                          │                        │
+    │                          │ Check expires_at       │
+    │                          │ < now? → 401           │
+    │                          │                        │
+    │                          │ Get user by user_id    │
+    │                          ├───────────────────────>│
+    │                          │<───────────────────────┤
+    │                          │                        │
+    │ {user data}              │                        │
+    │<─────────────────────────┤                        │
+    │                          │                        │
+
+
+FLOW 4: LOGOUT
+--------------
+┌────────┐                ┌─────────┐              ┌──────────┐
+│ Client │                │ Backend │              │ Database │
+└───┬────┘                └────┬────┘              └────┬─────┘
+    │                          │                        │
+    │ POST /auth/logout        │                        │
+    │ Cookie: juris_session=..│                        │
+    ├─────────────────────────>│                        │
+    │                          │                        │
+    │                          │ Validate session       │
+    │                          │ (via dependency)       │
+    │                          │                        │
+    │                          │ Delete all user        │
+    │                          │ sessions               │
+    │                          ├───────────────────────>│
+    │                          │                        │
+    │ Clear-Cookie             │                        │
+    │ 204 No Content           │                        │
+    │<─────────────────────────┤                        │
+    │                          │                        │
+    │ Redirect to /login       │                        │
+    │                          │                        │
+
+
+SECURITY LAYERS
+===============
+
+Layer 1: Transport Security
+----------------------------
+[HTTPS in production]
+Prevents man-in-the-middle attacks
+
+Layer 2: Password Security
+---------------------------
+[bcrypt hashing]
+- Salted
+- Slow (resistant to brute force)
+- Never store plaintext
+
+Layer 3: Session Security
+--------------------------
+[HttpOnly Cookies]
+- Not accessible via JavaScript
+- SameSite=lax (CSRF protection)
+- Server-side storage
+- Expiry enforcement
+
+Layer 4: Database Security
+---------------------------
+[MongoDB]
+- Unique email constraint
+- Indexed for performance
+- IP whitelist on Atlas
+- Encryption at rest
+
+Layer 5: Input Validation
+--------------------------
+[Pydantic Models]
+- Email format validation
+- Password length requirements
+- Type checking
+- Sanitization
+
+Layer 6: CORS Protection
+-------------------------
+[Middleware]
+- Whitelist specific origins
+- Allow credentials flag
+- Prevents unauthorized domains
+
+
+COOKIE DETAILS
+==============
+
+Cookie Name: juris_session
+Cookie Value: MongoDB session._id (ObjectId as string)
+Cookie Attributes:
+  - httponly=True   → Not accessible via JavaScript
+  - secure=False    → Set to True in production (HTTPS only)
+  - samesite=lax    → Sent on same-site requests and top-level navigation
+  - max_age=604800  → 7 days (7 * 24 * 60 * 60)
+  - path=/          → Sent with all requests
+
+
+FILE STRUCTURE
+==============
+
+Backend Auth Module:
+/agent/auth/
+  ├── __init__.py
+  ├── models.py          → Pydantic models, schemas
+  ├── security.py        → Password hashing, session utils
+  ├── database.py        → MongoDB CRUD operations
+  ├── dependencies.py    → FastAPI dependencies (middleware)
+  └── router.py          → Auth endpoints (/auth/*)
+
+Frontend Auth:
+/web/lib/
+  ├── auth-api.ts        → API client (with credentials)
+  └── auth-context.tsx   → React Context Provider
+
+Frontend Pages:
+/web/app/
+  ├── login/page.tsx
+  ├── register/page.tsx
+  └── dashboard/page.tsx (protected)
+
+
+DEPLOYMENT CONSIDERATIONS
+==========================
+
+Development:
+- secure=False (allow HTTP)
+- Allow localhost origins
+- Verbose error messages
+
+Production:
+- secure=True (require HTTPS)
+- Whitelist specific domains
+- Generic error messages
+- Rate limiting
+- Monitoring/logging
+- Session cleanup cron job
+- Database backups
+- Environment secrets
+
+
+KEY DIFFERENCES FROM JWT
+=========================
+
+Server-Side Sessions vs JWT:
+
+Sessions (This Implementation):
+✓ Can revoke immediately
+✓ Can track active sessions
+✓ Can "logout everywhere"
+✓ Less client-side storage
+✗ Requires database lookup
+✗ Harder to scale horizontally
+
+JWT:
+✓ No server state needed
+✓ Easy horizontal scaling
+✓ Can include claims
+✗ Cannot revoke before expiry
+✗ Longer token strings
+✗ Risk if secret leaked
+
+For Juris hackathon context, server-side sessions are simpler
+and provide better control.

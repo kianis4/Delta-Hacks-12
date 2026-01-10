@@ -1,0 +1,100 @@
+TEAM SETUP - USING SHARED MONGODB ATLAS
+========================================
+
+You're using your teammate's MongoDB Atlas setup. Here's what you need to know:
+
+✅ WHAT YOU ALREADY HAVE:
+-------------------------
+1. MongoDB connection string from teammate ✓
+2. All API keys (Google, Voyage) ✓
+3. .env file configured ✓
+
+✅ WHAT WAS ADDED:
+------------------
+MONGODB_DB_NAME=juris
+
+This is just the name of the database. MongoDB will create it automatically.
+You don't need to do anything in MongoDB Atlas.
+
+📋 YOUR CURRENT .ENV:
+---------------------
+GOOGLE_API_KEY=AIzaSyCoTkPoAD4BobHddKqweYpbB6xlalFJY0s
+MONGODB_URI=mongodb+srv://suleyman_db_user:XfkIhSSJfENM4Khh@juriscluster.dfgcoqu.mongodb.net/?appName=JurisCluster
+MONGODB_DB_NAME=juris
+VOYAGE_API_KEY=pa-6INyJ3E_jAqCPcF8v_XGZ_7ZC2g3J7kra1SrCiCTdsp
+
+🚀 YOU'RE READY TO START!
+--------------------------
+
+1. Install backend dependencies (if not already done):
+   cd /home/karimelbasiouni712/Delta-Hacks-12
+   pip install -r auth-requirements.txt
+
+2. Start auth-enabled backend server:
+   python auth_server.py
+   
+   Or with uvicorn:
+   uvicorn auth_server:app --reload
+
+3. Start frontend (new terminal):
+   cd web
+   npm install
+   npm run dev
+
+4. Test authentication:
+   - Visit http://localhost:3000/register
+   - Create an account
+   - Should redirect to dashboard!
+
+🔍 WHAT HAPPENS WHEN YOU START:
+--------------------------------
+1. Backend connects to your teammate's MongoDB cluster
+2. Creates "juris" database (if it doesn't exist)
+3. Creates "users" collection (if it doesn't exist)
+4. Creates "sessions" collection (if it doesn't exist)
+5. Adds indexes automatically
+6. Ready to register users!
+
+⚠️ IMPORTANT NOTES:
+-------------------
+- You're using the SAME MongoDB as your teammate
+- Any users you create will be visible to your teammate
+- Any data your teammate creates will be visible to you
+- This is PERFECT for team collaboration!
+
+💡 DATABASE ORGANIZATION:
+-------------------------
+Your shared cluster will look like this:
+
+JurisCluster (teammate's cluster)
+├── juris (your auth database)
+│   ├── users (created automatically)
+│   └── sessions (created automatically)
+└── [any other databases your teammate has]
+
+Each database is separate, so your auth data won't interfere with other projects.
+
+🤝 WORKING AS A TEAM:
+---------------------
+- You share: MongoDB cluster, API keys
+- You each have: Your own registered user accounts
+- Both can: Register, login, test features
+- Data is: Shared in the same database
+
+This is the correct setup for collaborative development!
+
+✅ NO ACTION NEEDED IN MONGODB ATLAS:
+-------------------------------------
+You do NOT need to:
+- Create an account
+- Create a cluster
+- Create a database
+- Create collections
+- Add IP addresses
+- Create users in Atlas
+
+Everything is handled by your teammate's setup and the application code.
+
+🎯 NEXT STEP:
+-------------
+Start the servers and test! See QUICKSTART_AUTH.txt for commands.

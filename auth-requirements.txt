@@ -1,0 +1,12 @@
+# Authentication System Requirements
+# Install with: pip install -r auth-requirements.txt
+
+# Core auth dependencies
+bcrypt==4.1.2
+email-validator==2.1.0
+
+# Already included in main requirements.txt but listed here for reference:
+# pymongo (MongoDB driver)
+# fastapi (Web framework)
+# pydantic (Data validation)
+# python-dotenv (Environment variables)

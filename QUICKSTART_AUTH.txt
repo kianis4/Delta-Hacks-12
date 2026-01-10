@@ -1,0 +1,96 @@
+JURIS AUTHENTICATION - QUICK START
+==================================
+
+Get your authentication system running in 5 minutes!
+
+NOTE: If using a teammate's MongoDB (like your setup):
+- You already have the connection string ✓
+- Just add MONGODB_DB_NAME=juris to .env ✓
+- Skip to STEP 3!
+
+STEP 1: Setup MongoDB (2 minutes) - SKIP IF USING TEAMMATE'S
+-------------------------------------------------------------
+1. Go to https://www.mongodb.com/cloud/atlas
+2. Create free account and cluster
+3. Create database user (save password!)
+4. Add IP: 0.0.0.0/0 (for development)
+5. Get connection string
+
+STEP 2: Configure Backend (30 seconds)
+--------------------------------------
+Your .env file should have:
+- MONGODB_URI (you already have this from teammate) ✓
+- MONGODB_DB_NAME=juris (just added) ✓
+
+If not already done:
+pip install -r auth-requirements.txt
+
+Note: This installs ONLY auth dependencies without modifying
+your existing requirements.txt
+
+STEP 3: Start Backend (30 seconds)
+-----------------------------------
+python auth_server.py
+
+Or with uvicorn:
+uvicorn auth_server:app --reload
+
+Should see:
+✓ Uvicorn running on http://localhost:8000
+✓ No MongoDB errors
+
+Test it: http://localhost:8000/docs
+You should see /auth endpoints!
+
+STEP 4: Start Frontend (1 minute)
+----------------------------------
+cd web
+npm install
+npm run dev
+
+Should see:
+✓ Next.js running on http://localhost:3000
+
+STEP 5: Test Authentication (1 minute)
+---------------------------------------
+1. Visit http://localhost:3000/register
+2. Create account: 
+   - Email: test@example.com
+   - Password: password123
+3. Should redirect to dashboard!
+4. Test logout button
+5. Try logging back in
+
+DONE! 🎉
+
+Next Steps:
+-----------
+- Read AUTH_README.md for detailed docs
+- Check AUTH_ARCHITECTURE_DIAGRAM.txt for flows
+- See AUTH_SETUP_GUIDE.txt for production tips
+- Extend protected_routes.py with your API endpoints
+
+Troubleshooting:
+----------------
+❌ MongoDB connection error
+   → Check .env file and connection string
+   → Verify IP whitelist (use 0.0.0.0/0 for testing)
+
+❌ "Not authenticated" after login
+   → Check browser cookies for juris_session
+   → Open DevTools → Application → Cookies
+   → Make sure credentials: 'include' in fetch
+
+❌ CORS error
+   → Backend should allow localhost:3000
+   → Check CORS middleware in server.py
+
+❌ bcrypt import error
+   → pip install bcrypt
+
+Need Help?
+----------
+See full documentation:
+- MONGODB_SETUP_INSTRUCTIONS.txt (detailed MongoDB setup)
+- AUTH_SETUP_GUIDE.txt (complete walkthrough)
+- AUTH_README.md (API reference)

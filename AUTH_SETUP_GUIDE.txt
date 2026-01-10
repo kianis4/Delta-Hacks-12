@@ -1,0 +1,338 @@
+JURIS AUTHENTICATION SYSTEM - COMPLETE SETUP GUIDE
+==================================================
+
+This guide walks you through setting up the complete authentication system for Juris.
+
+TABLE OF CONTENTS
+-----------------
+1. Prerequisites
+2. Backend Setup
+3. Frontend Setup
+4. Testing the System
+5. Architecture Overview
+6. Security Features
+7. Extending the System
+
+═══════════════════════════════════════════════════════════════════════════
+
+1. PREREQUISITES
+----------------
+
+Required Software:
+- Python 3.9+ (for backend)
+- Node.js 18+ (for frontend)
+- MongoDB Atlas account (free tier works)
+
+Required Packages (will be installed):
+- Backend: FastAPI, bcrypt, pymongo, etc.
+- Frontend: Next.js, React
+
+═══════════════════════════════════════════════════════════════════════════
+
+2. BACKEND SETUP
+----------------
+
+Step 1: Install Python Dependencies
+------------------------------------
+cd agent
+pip install -r requirements.txt
+
+New packages added for auth:
+- bcrypt: Password hashing
+- email-validator: Email validation
+
+Step 2: Configure MongoDB
+--------------------------
+Follow the instructions in MONGODB_SETUP_INSTRUCTIONS.txt to:
+1. Create MongoDB Atlas cluster
+2. Get connection string
+3. Update .env file
+
+Your .env should contain:
+```
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/
+MONGODB_DB_NAME=juris
+```
+
+Step 3: Start Backend Server
+-----------------------------
+cd agent
+python -m uvicorn server:app --reload
+
+Server will run on: http://localhost:8000
+
+Test it's working:
+- Visit http://localhost:8000/docs (FastAPI Swagger UI)
+- You should see /auth endpoints listed
+
+═══════════════════════════════════════════════════════════════════════════
+
+3. FRONTEND SETUP
+-----------------
+
+Step 1: Install Node Dependencies
+----------------------------------
+cd web
+npm install
+
+Step 2: Configure Environment (Optional)
+-----------------------------------------
+Create web/.env.local if you want custom API URL:
+
+NEXT_PUBLIC_API_URL=http://localhost:8000
+
+(Default is http://localhost:8000, so this is optional)
+
+Step 3: Start Frontend
+-----------------------
+cd web
+npm run dev
+
+Frontend will run on: http://localhost:3000
+
+═══════════════════════════════════════════════════════════════════════════
+
+4. TESTING THE SYSTEM
+----------------------
+
+Test Flow:
+----------
+
+1. Visit http://localhost:3000/register
+   - Create account with email + password
+   - Should auto-login and redirect to dashboard
+
+2. Visit http://localhost:3000/dashboard
+   - Should show your user info
+   - Test logout button
+
+3. Visit http://localhost:3000/login
+   - Login with your credentials
+   - Should redirect to dashboard
+
+4. Test Protected API:
+   - Try visiting http://localhost:8000/auth/me in browser
+   - Should see your user data (if logged in)
+   - Or "Not authenticated" if logged out
+
+5. Check Cookies:
+   - Open browser DevTools → Application → Cookies
+   - You should see "juris_session" cookie
+   - It should be HttpOnly (not accessible via JavaScript)
+
+═══════════════════════════════════════════════════════════════════════════
+
+5. ARCHITECTURE OVERVIEW
+-------------------------
+
+Backend Structure:
+------------------
+agent/
+├── auth/
+│   ├── __init__.py
+│   ├── models.py          # Pydantic models & MongoDB schemas
+│   ├── security.py        # Password hashing, session utilities
+│   ├── database.py        # MongoDB operations
+│   ├── dependencies.py    # FastAPI auth dependencies
+│   └── router.py          # Auth endpoints
+├── protected_routes.py    # Example protected endpoints
+└── server.py              # Main FastAPI app
+
+MongoDB Collections:
+--------------------
+users:
+  - _id (ObjectId)
+  - email (unique, indexed)
+  - password_hash
+  - full_name (optional)
+  - created_at
+  - updated_at
+
+sessions:
+  - _id (ObjectId) - used as session_id
+  - user_id (reference to users._id)
+  - created_at
+  - expires_at
+  - ip_address (optional)
+  - user_agent (optional)
+
+Frontend Structure:
+-------------------
+web/
+├── lib/
+│   ├── auth-api.ts        # API client for auth operations
+│   └── auth-context.tsx   # React context for global auth state
+└── app/
+    ├── login/page.tsx     # Login page
+    ├── register/page.tsx  # Register page
+    ├── dashboard/page.tsx # Protected dashboard
+    └── layout.tsx         # Root layout with AuthProvider
+
+Authentication Flow:
+--------------------
+1. User submits login/register form
+2. Frontend calls API with credentials
+3. Backend validates credentials
+4. Backend creates session in MongoDB
+5. Backend sets HttpOnly cookie with session_id
+6. Cookie automatically sent with all subsequent requests
+7. Backend validates cookie on protected endpoints
+8. Frontend checks auth state via /auth/me
+
+═══════════════════════════════════════════════════════════════════════════
+
+6. SECURITY FEATURES
+--------------------
+
+✓ Password Hashing:
+  - bcrypt with salt
+  - Configured for secure rounds
+  - Passwords never stored in plaintext
+
+✓ HttpOnly Cookies:
+  - Not accessible via JavaScript (XSS protection)
+  - SameSite=lax (CSRF protection)
+  - Secure flag ready for HTTPS in production
+
+✓ Session Management:
+  - Sessions expire after 7 days
+  - Stored in MongoDB (server-side)
+  - Automatic cleanup endpoint
+
+✓ Input Validation:
+  - Email format validation
+  - Password minimum length (8 chars)
+  - Pydantic models for request validation
+
+✓ Database Security:
+  - Unique email index
+  - Proper error handling for duplicates
+  - ObjectId validation
+
+Production Checklist:
+---------------------
+Before deploying to production:
+
+1. Set secure=True for cookies (requires HTTPS)
+2. Update CORS origins to production domains
+3. Add rate limiting (e.g., slowapi)
+4. Implement refresh tokens (optional)
+5. Add email verification (optional)
+6. Set up MongoDB backup strategy
+7. Configure proper logging
+8. Add monitoring/alerting
+9. Implement session cleanup cron job
+10. Use environment-specific secrets
+
+═══════════════════════════════════════════════════════════════════════════
+
+7. EXTENDING THE SYSTEM
+------------------------
+
+Adding Protected Endpoints:
+---------------------------
+Example in your code:
+
+```python
+from fastapi import APIRouter, Depends
+from auth.dependencies import get_current_user
+
+router = APIRouter()
+
+@router.get("/my-cases")
+async def get_cases(user: dict = Depends(get_current_user)):
+    user_id = str(user["_id"])
+    # Query cases for this user
+    return {"cases": []}
+```
+
+Adding User Profile Fields:
+---------------------------
+1. Update UserRegister model in auth/models.py
+2. Update create_user in auth/database.py
+3. Update register endpoint in auth/router.py
+4. Update frontend registration form
+
+Example Protected API Client (Frontend):
+-----------------------------------------
+```typescript
+export async function getUserCases(): Promise<Case[]> {
+  const response = await fetch(`${API_BASE_URL}/api/cases`, {
+    credentials: 'include', // Important!
+  });
+  
+  if (!response.ok) {
+    throw new Error('Failed to fetch cases');
+  }
+  
+  return response.json();
+}
+```
+
+Adding Password Reset:
+----------------------
+1. Add password_reset_tokens collection
+2. Create /auth/forgot-password endpoint
+3. Create /auth/reset-password endpoint
+4. Implement email sending (e.g., SendGrid)
+5. Add frontend password reset flow
+
+Adding OAuth (Google/GitHub):
+------------------------------
+1. Install authlib or similar
+2. Add OAuth callback endpoints
+3. Link OAuth accounts to user records
+4. Update frontend with OAuth buttons
+
+Adding Role-Based Access:
+--------------------------
+1. Add "role" field to users collection
+2. Create role-checking dependency
+3. Use in endpoints: Depends(require_admin)
+4. Update frontend to show/hide based on role
+
+═══════════════════════════════════════════════════════════════════════════
+
+QUICK REFERENCE - Key Files
+----------------------------
+
+Backend Auth Logic:
+- agent/auth/router.py        → Endpoints: /auth/register, /login, /logout, /me
+- agent/auth/dependencies.py  → Middleware: get_current_user()
+- agent/auth/database.py      → MongoDB operations
+
+Frontend Auth:
+- web/lib/auth-context.tsx    → Global auth state: useAuth()
+- web/lib/auth-api.ts          → API calls: AuthAPI.login(), register()
+- web/app/dashboard/page.tsx  → Protected route example
+
+Configuration:
+- agent/.env                   → Backend config (MongoDB, secrets)
+- web/.env.local               → Frontend config (API URL)
+
+═══════════════════════════════════════════════════════════════════════════
+
+TROUBLESHOOTING COMMON ISSUES
+------------------------------
+
+Issue: "Not authenticated" even after login
+Fix: Check browser cookies, ensure credentials: 'include' in fetch
+
+Issue: CORS error on login
+Fix: Verify CORS middleware allows credentials and correct origin
+
+Issue: MongoDB connection error
+Fix: Check .env file, verify connection string, check IP whitelist
+
+Issue: Password not hashing
+Fix: Ensure bcrypt is installed: pip install bcrypt
+
+Issue: Frontend auth state not updating
+Fix: Verify AuthProvider wraps app in layout.tsx
+
+═══════════════════════════════════════════════════════════════════════════
+
+For more help or questions, refer to:
+- FastAPI docs: https://fastapi.tiangolo.com
+- MongoDB Atlas: https://www.mongodb.com/docs/atlas
+- Next.js docs: https://nextjs.org/docs

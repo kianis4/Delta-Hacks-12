@@ -1,0 +1,132 @@
+JURIS AUTHENTICATION SETUP - MongoDB Atlas Configuration
+=======================================================
+
+IMPORTANT NOTE FOR TEAM SETUP:
+-------------------------------
+If your teammate already set up MongoDB Atlas (like in your case), you only need:
+1. The MongoDB connection string (you already have this!)
+2. Choose a database name (see STEP 2 below)
+
+MongoDB will automatically create the database and collections when the app runs.
+You do NOT need to manually create anything in MongoDB Atlas.
+
+=======================================================
+
+OPTION A: USING TEAMMATE'S MONGODB (Your Situation)
+----------------------------------------------------
+
+STEP 1: Get Connection String from Teammate ✓
+----------------------------------------------
+You already have this! It's in your .env file:
+mongodb+srv://suleyman_db_user:XfkIhSSJfENM4Khh@juriscluster.dfgcoqu.mongodb.net/?appName=JurisCluster
+
+STEP 2: Choose a Database Name
+-------------------------------
+The database name is just a label for organizing data. You can use:
+- "juris" (recommended, already in .env)
+- "juris_dev"
+- "juris_auth"
+- Or any name you want!
+
+MongoDB will create it automatically when the app first connects.
+You don't need to create it manually in Atlas.
+
+STEP 3: That's It! ✓
+---------------------
+Your .env file is now complete. The auth system will:
+1. Connect to your teammate's MongoDB cluster
+2. Create the "juris" database (if it doesn't exist)
+3. Create "users" and "sessions" collections automatically
+4. Add proper indexes automatically
+
+You're ready to start the backend server!
+
+=======================================================
+
+OPTION B: SETTING UP YOUR OWN MONGODB (If Starting Fresh)
+----------------------------------------------------------
+
+STEP 1: Create MongoDB Atlas Account
+-------------------------------------
+1. Go to https://www.mongodb.com/cloud/atlas
+2. Click "Try Free" or "Sign In" if you already have an account
+3. Complete registration (you can use the free tier)
+
+STEP 2: Create a New Cluster
+-----------------------------
+1. After logging in, click "Create" to create a new deployment
+2. Choose the FREE tier (M0)
+3. Select your preferred cloud provider and region (closest to you)
+4. Name your cluster (e.g., "juris-cluster")
+5. Click "Create Deployment" and wait for it to finish (takes 1-3 minutes)
+
+STEP 3: Create Database User
+-----------------------------
+1. When prompted, create a database user:
+   - Username: Choose a username (e.g., "juris-admin")
+   - Password: Generate a secure password (SAVE THIS!)
+   - Or click "Autogenerate Secure Password" and copy it
+   
+2. Click "Create Database User"
+
+STEP 4: Configure Network Access
+---------------------------------
+1. Add your IP address to the IP Access List:
+   - For development: Click "Add My Current IP Address"
+   - For broader access (less secure): Use 0.0.0.0/0 (allows from anywhere)
+   
+2. Click "Finish and Close"
+
+STEP 5: Get Connection String
+------------------------------
+1. Click "Connect" on your cluster
+2. Choose "Connect your application"
+3. Select "Python" as driver and version "3.12 or later"
+4. Copy the connection string (looks like this):
+   
+   mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority
+
+5. IMPORTANT: Replace <username> and <password> with your actual credentials:
+   - Remove the < > brackets
+   - Use the username you created in Step 3
+   - Use the password you saved in Step 3
+
+STEP 6: Update Your .env File
+------------------------------
+1. In the /agent directory, copy .env.example to .env:
+   
+   cd agent
+   cp .env.example .env
+
+2. Open .env and update the MONGODB_URI with your connection string:
+   
+   MONGODB_URI=mongodb+srv://juris-admin:YOUR_PASSWORD@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority
+   MONGODB_DB_NAME=juris
+
+3. Make sure to replace YOUR_PASSWORD with your actual password
+
+STEP 7: Verify Connection
+--------------------------
+Test your connection by starting the FastAPI server:
+
+   cd agent
+   python -m uvicorn server:app --reload
+
+If you see no errors and the server starts, your MongoDB connection is working!
+
+SECURITY NOTES:
+---------------
+- NEVER commit your .env file to Git
+- Keep your database password secure
+- In production, restrict IP access to only your server's IP
+- Use environment variables for all sensitive data
+- Consider using MongoDB Atlas's built-in encryption
+
+TROUBLESHOOTING:
+----------------
+- If connection fails, verify your username/password
+- Check that your IP is whitelisted in Network Access
+- Ensure the connection string format is correct
+- Try using 0.0.0.0/0 for IP access during testing (less secure)
+
+For more help: https://www.mongodb.com/docs/atlas/getting-started/
