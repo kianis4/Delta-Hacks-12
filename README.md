@@ -84,11 +84,11 @@ graph TD
     
     subgraph "Metadata Filtering Layer"
     Classifier -->|Determine Scope| FilterLogic{Scope Analysis}
-    FilterLogic -->|Federal| FedParam[Set Filter: jurisdiction='FEDERAL'<br/>(Criminal, Tax, Divorce)]
-    FilterLogic -->|Provincial| ProvParam[Set Filter: jurisdiction='ONTARIO'<br/>(Tenancy, Family, Civil)]
+    FilterLogic -->|Federal| FedParam["Set Filter: jurisdiction='FEDERAL'<br/>(Criminal, Tax, Divorce)"]
+    FilterLogic -->|Provincial| ProvParam["Set Filter: jurisdiction='ONTARIO'<br/>(Tenancy, Family, Civil)"]
     end
     
-    FedParam --> VectorSearch[MongoDB Atlas Vector Search<br/>(HNSW Index)]
+    FedParam --> VectorSearch["MongoDB Atlas Vector Search<br/>(HNSW Index)"]
     ProvParam --> VectorSearch
     
     %% Tool Paths
@@ -96,7 +96,7 @@ graph TD
     Router -->|Find Lawyer| LawyerTool[LSO Referral Service]
     
     %% Synthesis
-    VectorSearch -->|Retrieved Context| Generator[Gemini 2.0 Flash<br/>(Reasoning Engine)]
+    VectorSearch -->|Retrieved Context| Generator["Gemini 2.0 Flash<br/>(Reasoning Engine)"]
     FormTool -->|PDF Links| Generator
     LawyerTool -->|Contact Info| Generator
     
