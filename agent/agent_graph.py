@@ -6,9 +6,9 @@ from enum import Enum
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.messages import BaseMessage, AIMessage, SystemMessage
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain_mongodb import MongoDBAtlasVectorSearch
-from langchain_voyageai import VoyageAIEmbeddings
+# from langchain_voyageai import VoyageAIEmbeddings
 from dotenv import load_dotenv
 import certifi
 from pymongo import MongoClient
@@ -108,7 +108,7 @@ def get_db_connection():
         return None
 
 def get_embeddings():
-    return VoyageAIEmbeddings(model="voyage-law-2")
+    return GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
 
 # --- Nodes ---
 
