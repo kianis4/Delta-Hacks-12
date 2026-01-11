@@ -6,11 +6,15 @@ import { cn } from '@/lib/utils';
 
 export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-[#050A18] text-white selection:bg-[#C5A065] selection:text-white font-sans overflow-x-hidden">
-      {/* Background Ambience */}
-      <div className="fixed inset-0 z-0 opacity-20 pointer-events-none">
-          <div className="absolute top-[-10%] right-[-10%] w-[800px] h-[800px] bg-blue-900/30 rounded-full blur-[120px]" />
-          <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-indigo-900/20 rounded-full blur-[100px]" />
+    <main className="min-h-screen bg-[#050A18] text-white selection:bg-[#C5A065] selection:text-white font-sans overflow-x-hidden relative">
+      {/* Background Image with Overlay */}
+      <div className="fixed inset-0 z-0">
+          <img 
+            src="/hero-bg.png" 
+            alt="Office Skyline" 
+            className="w-full h-full object-cover opacity-40 mix-blend-overlay"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#050A18]/90 via-[#050A18]/80 to-[#050A18]" />
       </div>
 
       {/* Navbar */}
