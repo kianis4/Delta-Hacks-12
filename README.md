@@ -72,21 +72,39 @@ We rejected "Data Silos". All statutes reside in a single collection to enable c
 
 ---
 
-## System Architecture
+## System Architecture: The Decision Tree
+We utilize a multi-step component architecture to ensure high precision. The system does not just "search"; it first **classifies**, then **filters**, and finally **retrieves**.
 
 ```mermaid
 graph TD
-    User -->|Query| Router{"Intent Router"}
+    User[User Query] --> Router{Intent Classification}
     
-    Router -->|ADVICE| Vector["Vector Search (Mongo Atlas)"]
-    Router -->|FORM| FormTool["Official PDF Finder"]
-    Router -->|SEARCH| LawyerTool["LSO Referral Service"]
+    %% Advice Path: The Decision Tree
+    Router -->|Legal Advice| Classifier[Jurisdiction & Statute Classifier]
     
-    Vector --> Generator["Gemini 2.0 Flash"]
-    FormTool --> Generator
-    LawyerTool --> Generator
+    subgraph "Metadata Filtering Layer"
+    Classifier -->|Determine Scope| FilterLogic{Scope Analysis}
+    FilterLogic -->|Federal| FedParam[Set Filter: jurisdiction='FEDERAL'<br/>(Criminal, Tax, Divorce)]
+    FilterLogic -->|Provincial| ProvParam[Set Filter: jurisdiction='ONTARIO'<br/>(Tenancy, Family, Civil)]
+    end
     
-    Generator -->|Structured Response| Client
+    FedParam --> VectorSearch[MongoDB Atlas Vector Search<br/>(HNSW Index)]
+    ProvParam --> VectorSearch
+    
+    %% Tool Paths
+    Router -->|Find Form| FormTool[Official PDF Finder]
+    Router -->|Find Lawyer| LawyerTool[LSO Referral Service]
+    
+    %% Synthesis
+    VectorSearch -->|Retrieved Context| Generator[Gemini 2.0 Flash<br/>(Reasoning Engine)]
+    FormTool -->|PDF Links| Generator
+    LawyerTool -->|Contact Info| Generator
+    
+    Generator -->|Final System Reference| Client[Client UI]
+    
+    style VectorSearch fill:#112045,stroke:#C5A065,stroke-width:2px,color:#fff
+    style Generator fill:#112045,stroke:#C5A065,stroke-width:2px,color:#fff
+    style Router fill:#C5A065,stroke:#fff,stroke-width:2px,color:#000
 ```
 
 ---
