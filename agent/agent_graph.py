@@ -72,17 +72,19 @@ class ResponseOutput(BaseModel):
 class Citation(BaseModel):
     source_title: str = Field(description="The name of the Act or Document (include Jurisdiction).")
     quote: str = Field(description="The exact verbatim text quoted from the source.")
-    url: Optional[str] = Field(description="Direct URL to the source document if available in context.")
+    url: Optional[str] = Field(description="Direct URL to the source document if available in context.", default=None)
 
 class ResponseOutput(BaseModel):
     explanation: str = Field(
         description="The main body of the response, including direct answers, drafting text, or helpful explanations. Use Markdown."
     )
     citations: List[Citation] = Field(
-        description="List of relevant legal citations with quotes and URLs."
+        description="List of relevant legal citations with quotes and URLs.",
+        default_factory=list
     )
     options: List[Option] = Field(
-        description="List of actionable options/buttons for the user."
+        description="List of actionable options/buttons for the user.",
+        default_factory=list
     )
 
 # --- State Definition ---
