@@ -19,9 +19,12 @@
 > This capability demonstration showcases advanced **Agentic AI Engineering** beyond standard LLM wrappers. It implements a non-linear **LangGraph State Machine** to handle complex reasoning loops, **Hybrid Keyword/Vector Retrieval (RAG)** for legal precision, and **Structured Output Validation** to prevent hallucinations.
 > 
 > **Core Competencies Demonstrated:**  
-> • **Agentic Architecture:** Designing deterministic control flows (Routing -> Research -> Synthesis) using LangGraph.  
-> • **Production RAG:** Implementing HNSW indexes on MongoDB Atlas with metadata filtering for 16,000+ documents.  
-> • **Full Stack Integration:** Connecting a Python AI backend (FastAPI) with a Next.js 14 frontend using Server Sent Events (streaming).
+> • **Agentic Architecture:** Designing deterministic control flows (Routing -> Research -> Synthesis) using **LangGraph** to manage conversational state and cyclic decision making.  
+> • **Production RAG:** Built on **MongoDB Atlas Vector Search** using **HNSW indexing** with metadata filtering for **16,000+ documents**. App leverages **Google's 'Gecko' (text-embedding-004)** model—chosen for its 768-dimensional semantic density—to enable precise legal retrieval.
+> • **Advanced Reasoning:** Powered by **Gemini 2.0 Flash**, leveraging its **1M+ token context window** to synthesize vast legal contexts and **Native Structured Outputs** to ensure strict JSON adherence for the frontend.
+> • **Full Stack Integration:** Connecting a Python AI backend (FastAPI) with a Next.js 16 frontend using Server Sent Events (streaming).
+> 
+> **Technologies:** Python, TypeScript, Gemini 2.0 Flash, LangGraph, MongoDB Atlas, FastAPI, Next.js 16, Tailwind CSS, Docker, Railway, Vercel.
 
 ---
 
@@ -87,6 +90,7 @@ We rejected "Data Silos". All statutes reside in a single collection to enable c
 | **Vector Database** | **MongoDB Atlas Search** | Native integration allows for "Pre-Filtering" via aggregation pipelines. The HNSW algorithm ensures scalability to millions of documents without latency degradation. |
 | **Orchestration** | **LangGraph** | A State Machine (not a Chain). Allows for cyclic, stateful workflows (Router -> Research -> Draft) rather than linear execution. |
 | **Frontend** | **Next.js 14 + Tailwind** | "Suits" inspired dark/premium aesthetic with Vercel Analytics for performance tracking. |
+| **Utilities** | **DuckDuckGo, PyPDF, BeautifulSoup** | Real-time web search for form retrieval and robust PDF/HTML parsing for document ingestion. |
 
 ---
 
