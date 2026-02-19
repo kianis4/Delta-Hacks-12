@@ -220,13 +220,22 @@ export default function LandingPage() {
                     github="https://github.com/kianis4"
                 />
                 <div className="hidden md:block w-px bg-gradient-to-b from-transparent via-white/10 to-transparent" />
-                <PartnerCard 
+                <PartnerCard
                     initials="KE"
                     name="Karim Elbasiouni"
                     role="Name Partner • AI Research"
                     creds="4th Year Software Engineering • McMaster University"
                     link="https://www.linkedin.com/in/karim-elbasiouni2/"
                      github="https://github.com/KarimElbasiouni"
+                />
+                <div className="hidden md:block w-px bg-gradient-to-b from-transparent via-white/10 to-transparent" />
+                <PartnerCard
+                    initials="AK"
+                    name="Abakar Kosso"
+                    role="AI Engineer"
+                    creds="AI Engineering & Development"
+                    link="https://www.linkedin.com/in/abakarkosso"
+                    github="https://github.com/abakarkosso"
                 />
             </div>
         </div>
