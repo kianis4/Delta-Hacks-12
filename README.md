@@ -157,6 +157,10 @@ We utilize a **Hybrid Cloud Architecture** to ensure global low-latency and reli
 *   **Credentials:** 4th Year Software Engineering Student (McMaster University)
 *   [LinkedIn](https://www.linkedin.com/in/karim-elbasiouni2/) | [GitHub](https://github.com/KarimElbasiouni)
 
+**Abakar Kosso** | *AI Engineer*
+*   **Role:** AI Engineering & Development
+*   [LinkedIn](https://www.linkedin.com/in/abakarkosso) | [GitHub](https://github.com/abakarkosso)
+
 ---
 
 ## License
