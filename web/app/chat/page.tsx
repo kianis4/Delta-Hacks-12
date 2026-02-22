@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, AlertTriangle, Scale, FileText, Download, Gavel, UserCheck, Briefcase } from 'lucide-react';
+import { Send, AlertTriangle, Scale, FileText, Download, Gavel, UserCheck, Briefcase, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -30,12 +30,21 @@ import remarkGfm from 'remark-gfm';
     const handleSaulToggle = () => {
         // The law has no room for shenanigans ;)
         setSaulMode(true); // Visually toggle it maybe? No, let's keep it off or just flash it.
-        // Actually user said: "when they toggle it on nothing actually happens" 
+        // Actually user said: "when they toggle it on nothing actually happens"
         // implies the visual toggle might move but the effect is the quote.
         // Let's toggle the state but reset it or just show the toast.
         setShowToast(true);
         setTimeout(() => setShowToast(false), 4000);
         setTimeout(() => setSaulMode(false), 300); // Reset toggle back to off for effect
+    };
+
+    // Clear chat conversation and start fresh
+    const clearChat = () => {
+        setMessages([
+            { role: 'assistant', content: 'Mike Ross here. I\'ve memorized every law book in the database. What aspect of the law can I help you exploit... I mean, understand, today?' }
+        ]);
+        setThreadId(crypto.randomUUID());
+        setInput('');
     };
 
     /* ... sendMessage and renderMessageContent ... */
@@ -283,7 +292,17 @@ import remarkGfm from 'remark-gfm';
             </div>
           </div>
           
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
+              {/* Clear Chat Button */}
+              <button
+                onClick={clearChat}
+                className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all group"
+                title="Start a new conversation"
+              >
+                <RotateCcw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
+                <span>Clear Chat</span>
+              </button>
+
               {/* Saul Goodman Toggle */}
               <div className="hidden sm:flex items-center gap-2 cursor-pointer group" onClick={handleSaulToggle}>
                   <span className={cn("text-xs font-bold transition-colors", saulMode ? "text-yellow-600" : "text-slate-400 group-hover:text-slate-600")}>SAUL GOODMAN MODE</span>
