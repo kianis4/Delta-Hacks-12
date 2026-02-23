@@ -22,6 +22,7 @@ import remarkGfm from 'remark-gfm';
     const [threadId, setThreadId] = useState('');
     const [saulMode, setSaulMode] = useState(false);
     const [showToast, setShowToast] = useState(false);
+    const [isClearing, setIsClearing] = useState(false);
 
     useEffect(() => {
       setThreadId(crypto.randomUUID());
@@ -39,12 +40,28 @@ import remarkGfm from 'remark-gfm';
     };
 
     // Clear chat conversation and start fresh
-    const clearChat = () => {
+    const clearChat = async () => {
+        setIsClearing(true);
+        try {
+            // Clear the conversation state from the backend
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            await fetch(`${apiUrl}/clear-chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ thread_id: threadId })
+            });
+        } catch (error) {
+            // Log error but don't prevent frontend reset
+            console.error('Failed to clear backend state:', error);
+        }
+
+        // Reset frontend state
         setMessages([
             { role: 'assistant', content: 'Mike Ross here. I\'ve memorized every law book in the database. What aspect of the law can I help you exploit... I mean, understand, today?' }
         ]);
         setThreadId(crypto.randomUUID());
         setInput('');
+        setIsClearing(false);
     };
 
     /* ... sendMessage and renderMessageContent ... */
@@ -296,11 +313,12 @@ import remarkGfm from 'remark-gfm';
               {/* Clear Chat Button */}
               <button
                 onClick={clearChat}
-                className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all group"
+                disabled={isClearing}
+                className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Start a new conversation"
               >
-                <RotateCcw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
-                <span>Clear Chat</span>
+                <RotateCcw className={`w-4 h-4 ${isClearing ? 'animate-spin' : 'group-hover:rotate-180'} transition-transform duration-500`} />
+                <span>{isClearing ? 'Clearing...' : 'Clear Chat'}</span>
               </button>
 
               {/* Saul Goodman Toggle */}

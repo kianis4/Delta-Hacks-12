@@ -71,6 +71,38 @@ async def chat(request: ChatRequest):
 def health():
     return {"status": "ok"}
 
+class ClearChatRequest(BaseModel):
+    thread_id: str
+
+@app.post("/clear-chat")
+async def clear_chat(request: ClearChatRequest):
+    """
+    Clear conversation state for a given thread_id.
+    This removes the conversation history from the backend's memory.
+    """
+    try:
+        config = {"configurable": {"thread_id": request.thread_id}}
+
+        # Delete the conversation state from checkpointer memory
+        if hasattr(agent_app, 'checkpointer') and agent_app.checkpointer is not None:
+            try:
+                agent_app.checkpointer.delete(config)
+                print(f"--- Cleared conversation for thread: {request.thread_id} ---")
+                return {"status": "cleared", "thread_id": request.thread_id}
+            except Exception as e:
+                # If deletion fails (thread doesn't exist or other error), log but return success
+                # This ensures frontend doesn't break if state is already cleared
+                print(f"--- Note: Could not clear thread {request.thread_id}: {str(e)} ---")
+                return {"status": "cleared", "thread_id": request.thread_id, "note": "State may not have existed"}
+        else:
+            # Fallback: No checkpointer configured
+            return {"status": "cleared", "thread_id": request.thread_id, "note": "No checkpointer configured"}
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
 class PDFRequest(BaseModel):
     text: str
 
