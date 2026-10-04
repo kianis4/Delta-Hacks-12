@@ -210,7 +210,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-6">
             <h2 className="text-4xl font-serif mb-20 text-white">The Name Partners</h2>
             
-            <div className="flex flex-col md:flex-row justify-center gap-20">
+            <div className="flex flex-col md:flex-row justify-center gap-20 md:gap-10 lg:gap-16">
                 <PartnerCard 
                     initials="SK"
                     name="Suleyman Kiani"
@@ -227,6 +227,15 @@ export default function LandingPage() {
                     creds="4th Year Software Engineering • McMaster University"
                     link="https://www.linkedin.com/in/karim-elbasiouni2/"
                      github="https://github.com/KarimElbasiouni"
+                />
+                <div className="hidden md:block w-px bg-gradient-to-b from-transparent via-white/10 to-transparent" />
+                <PartnerCard
+                    initials="AK"
+                    name="Abakar Kosso"
+                    role="Name Partner • Backend & AI"
+                    creds="Economics, Minor in Applied Computing • Brock University"
+                    link="https://www.linkedin.com/in/abakarkosso/"
+                    github="https://github.com/abakarkosso"
                 />
             </div>
         </div>
