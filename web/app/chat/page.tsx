@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { Send, AlertTriangle, Scale, FileText, Download, Gavel, UserCheck, Briefcase } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Send, Scale, FileText, Download, Gavel, UserCheck, Briefcase } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';

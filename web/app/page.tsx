@@ -1,8 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Scale, Shield, Zap, Database, Terminal, Users, FileText, Gavel, BookOpen, Briefcase, Award } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { ArrowRight, Shield, Database, Terminal, FileText, Award } from 'lucide-react';
 
 export default function LandingPage() {
   return (
@@ -291,7 +290,16 @@ function PracticeMetric({ number, title, desc }: any) {
     )
 }
 
-function PartnerCard({ initials, name, role, creds, link, github }: any) {
+type PartnerCardProps = {
+    initials: string;
+    name: string;
+    role: string;
+    creds: string;
+    link: string;
+    github?: string;
+};
+
+function PartnerCard({ initials, name, role, creds, link, github }: PartnerCardProps) {
     return (
         <a href={link} target="_blank" className="text-center group cursor-pointer block max-w-sm mx-auto">
             <div className="w-32 h-32 mx-auto bg-[#0A1025] border border-white/10 flex items-center justify-center mb-6 group-hover:border-[#C5A065] transition-all duration-500 relative overflow-hidden rounded-sm">
