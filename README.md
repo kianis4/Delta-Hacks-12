@@ -162,6 +162,11 @@ We utilize a **Hybrid Cloud Architecture** to ensure global low-latency and reli
 *   **Credentials:** Economics, Minor in Applied Computing (Brock University)
 *   [LinkedIn](https://www.linkedin.com/in/abakarkosso/) | [GitHub](https://github.com/abakarkosso)
 
+**Musa Imran** | *Name Partner*
+*   **Role:** Automation & AI
+*   **Credentials:** B.Tech Automation Systems Engineering Technology Student (McMaster University)
+*   [LinkedIn](https://linkedin.com/in/musaimran06) | [GitHub](https://github.com/musaimran06)
+
 ---
 
 ## License
