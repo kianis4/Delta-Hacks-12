@@ -236,6 +236,15 @@ export default function LandingPage() {
                     link="https://www.linkedin.com/in/abakarkosso/"
                     github="https://github.com/abakarkosso"
                 />
+                <div className="hidden md:block w-px bg-gradient-to-b from-transparent via-white/10 to-transparent" />
+                <PartnerCard
+                    initials="MI"
+                    name="Musa Imran"
+                    role="Name Partner • Automation & AI"
+                    creds="B.Tech Automation Systems Engineering Technology • McMaster University"
+                    link="https://linkedin.com/in/musaimran06"
+                    github="https://github.com/musaimran06"
+                />
             </div>
         </div>
       </section>
