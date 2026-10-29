@@ -106,7 +106,8 @@ import remarkGfm from 'remark-gfm';
         const handleDownloadPdf = async (text: string) => {
              /* ... existing pdf logic ... */
               try {
-                const response = await fetch('http://localhost:8000/generate-pdf', {
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                const response = await fetch(`${apiUrl}/generate-pdf`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ text })
