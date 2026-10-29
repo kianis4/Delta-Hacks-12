@@ -16,15 +16,15 @@
 
 > [!NOTE]
 > **Scope of Project:**
-> This capability demonstration showcases advanced **Agentic AI Engineering** beyond standard LLM wrappers. It implements a non-linear **LangGraph State Machine** to handle complex reasoning loops, **Hybrid Keyword/Vector Retrieval (RAG)** for legal precision, and **Structured Output Validation** to prevent hallucinations.
+> This capability demonstration showcases advanced **Agentic AI Engineering** beyond standard LLM wrappers. It implements a **LangGraph State Machine** (router, research, generator) with per-conversation memory, **Metadata-Filtered Vector Retrieval (RAG)** for legal precision, and **Structured Output Validation** to prevent hallucinations.
 > 
 > **Core Competencies Demonstrated:**  
-> • **Agentic Architecture:** Designing deterministic control flows (Routing -> Research -> Synthesis) using **LangGraph** to manage conversational state and cyclic decision making.  
+> • **Agentic Architecture:** Designing deterministic control flows (Routing -> Research -> Synthesis) using **LangGraph** to manage conversational state across turns.  
 > • **Production RAG:** Built on **MongoDB Atlas Vector Search** using **HNSW indexing** with metadata filtering for **16,000+ documents**. App leverages **Google's 'Gecko' (text-embedding-004)** model—chosen for its 768-dimensional semantic density—to enable precise legal retrieval.
 > • **Advanced Reasoning:** Powered by **Gemini 2.0 Flash**, leveraging its **1M+ token context window** to synthesize vast legal contexts and **Native Structured Outputs** to ensure strict JSON adherence for the frontend.
-> • **Full Stack Integration:** Connecting a Python AI backend (FastAPI) with a Next.js 16 frontend using Server Sent Events (streaming).
+> • **Full Stack Integration:** Connecting a Python AI backend (FastAPI) with a Next.js 16 frontend over a JSON REST API (`/chat`, `/generate-pdf`).
 > 
-> **Technologies:** Python, TypeScript, Gemini 2.0 Flash, LangGraph, MongoDB Atlas, FastAPI, Next.js 16, Tailwind CSS, Docker, Railway, Vercel.
+> **Technologies:** Python, TypeScript, Gemini 2.0 Flash, LangGraph, MongoDB Atlas, FastAPI, Next.js 16, Tailwind CSS, Railway (Nixpacks), Vercel.
 
 ---
 
@@ -61,7 +61,7 @@ The core advantage of Mike Ross AI is its memory. We ingested **16,170 legal doc
 #### Indexing Strategy: Hierarchical Navigable Small World (HNSW)
 We utilize MongoDB Atlas Vector Search with a Lucene-based HNSW index. This allows for:
 *   **768 Dimensions:** Utilizing Google's `text-embedding-004` (Gecko) model for high semantic density.
-*   **Pre-Filtering:** Queries are filtered by metadata tags (`jurisdiction`, `act_name`) *before* the vector search occurs. This ensures a query about "Ontario Eviction" never accidentally retrieves a "British Columbia" statute, maintaining 100% jurisdictional accuracy.
+*   **Pre-Filtering:** Queries are filtered by the `jurisdiction` metadata tag *before* the vector search occurs, using `{"jurisdiction": {"$in": [<province>, "FEDERAL"]}}`. A query about "Ontario Eviction" searches only Ontario and federal chunks, so it never retrieves a "British Columbia" statute.
 *   **0.4s Latency:** Despite the dataset size, the HNSW graph traversal ensures sub-second retrieval times.
 
 #### The Data Breakdown (16,170 Documents)
@@ -71,9 +71,10 @@ We rejected "Data Silos". All statutes reside in a single collection to enable c
     *   *Divorce Act (C-3)*
     *   *Income Tax Act*
     *   *Excise Tax Act*
-*   **Provincial Jurisdiction (Ontario):**
-    *   *Residential Tenancies Act (RTA)*
-    *   *Family Law Act*
+*   **Provincial Jurisdiction:**
+    *   *Residential Tenancies Act, 2006* (Ontario)
+    *   *Residential Tenancy Act* (British Columbia)
+    *   *Residential Tenancies Act* (Alberta)
 
 ### 3. Enterprise-Grade Reliability
 *   **Zero Hallucination Policy:** Every claim is backed by a retrieved context chunk. If the law is not in the database, the agent admits it.
@@ -88,8 +89,8 @@ We rejected "Data Silos". All statutes reside in a single collection to enable c
 | **Reasoning Engine** | **Google Gemini 2.0 Flash** | Massive 1M+ token context window allowing for superior synthesis of long legal texts without "forgetting" instructions. Native Structured Output (Pydantic) support ensures robust JSON generation. |
 | **Embeddings** | **Google Gecko (`text-embedding-004`)** | A 768-dimensional dense vector model optimized for semantic retrieval reliability, outperforming standard OpenAI models on legal text benchmarks. |
 | **Vector Database** | **MongoDB Atlas Search** | Native integration allows for "Pre-Filtering" via aggregation pipelines. The HNSW algorithm ensures scalability to millions of documents without latency degradation. |
-| **Orchestration** | **LangGraph** | A State Machine (not a Chain). Allows for cyclic, stateful workflows (Router -> Research -> Draft) rather than linear execution. |
-| **Frontend** | **Next.js 14 + Tailwind** | "Suits" inspired dark/premium aesthetic with Vercel Analytics for performance tracking. |
+| **Orchestration** | **LangGraph** | A State Machine (not a Chain). Three nodes (Router -> Research -> Generator) share a typed state that is checkpointed per `thread_id`, so follow-up messages keep the detected jurisdiction. |
+| **Frontend** | **Next.js 16 + Tailwind** | "Suits" inspired dark/premium aesthetic with Vercel Analytics for performance tracking. |
 | **Utilities** | **DuckDuckGo, PyPDF, BeautifulSoup** | Real-time web search for form retrieval and robust PDF/HTML parsing for document ingestion. |
 
 ---
@@ -105,13 +106,10 @@ graph TD
     Router -->|Legal Advice| Classifier[Jurisdiction & Statute Classifier]
     
     subgraph "Metadata Filtering Layer"
-    Classifier -->|Determine Scope| FilterLogic{Scope Analysis}
-    FilterLogic -->|Federal| FedParam["Set Filter: jurisdiction='FEDERAL'<br/>(Criminal, Tax, Divorce)"]
-    FilterLogic -->|Provincial| ProvParam["Set Filter: jurisdiction='ONTARIO'<br/>(Tenancy, Family, Civil)"]
+    Classifier -->|Province known: ON, BC or AB| FilterParam["Set pre_filter: jurisdiction in {province, FEDERAL}<br/>(provincial Tenancy acts + federal Criminal, Tax, Divorce)"]
     end
     
-    FedParam --> VectorSearch["MongoDB Atlas Vector Search<br/>(HNSW Index)"]
-    ProvParam --> VectorSearch
+    FilterParam --> VectorSearch["MongoDB Atlas Vector Search<br/>(HNSW Index)"]
     
     %% Tool Paths
     Router -->|Find Form| FormTool[Official PDF Finder]
